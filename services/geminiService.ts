@@ -1,9 +1,13 @@
 import { UserInput, LifeDestinyResult, Gender } from "../types";
 import { BAZI_SYSTEM_INSTRUCTION } from "../constants";
 
-// TODO: 请将您的 OpenAI 格式密钥填入此处
-const API_KEY = "sk-UnpzkQCEqt3xRSs0FjzxkYKt8SULkjHTGviSoXsHtm0YHtTx"; 
-const API_BASE_URL = "https://max.openai365.top/v1";
+// OpenAI-compatible settings are injected from Vite via `.env.local`.
+// NOTE: This runs in the browser; putting API keys here exposes them to end users.
+const OPENAI_API_KEY = import.meta.env.OPENAI_API_KEY || "";
+const OPENAI_API_BASE = (import.meta.env.OPENAI_API_BASE || "https://api.openai.com/v1").replace(/\/$/, "");
+const MODEL_NAME =
+  (import.meta.env.MODEL_NAME || import.meta.env.MODLE_NAME || "").trim() ||
+  "[备用渠道A] gemini-3-pro-preview";
 
 // Helper to determine stem polarity
 const getStemPolarity = (pillar: string): 'YANG' | 'YIN' => {
@@ -20,8 +24,12 @@ const getStemPolarity = (pillar: string): 'YANG' | 'YIN' => {
 export const generateLifeAnalysis = async (input: UserInput): Promise<LifeDestinyResult> => {
   
   // 简单检查 Key 是否已替换
-  if (!API_KEY || API_KEY.includes("YOUR_API_KEY_HERE")) {
-    console.warn("警告: API Key 尚未设置，请在 services/geminiService.ts 中填入密钥。");
+  if (
+    !OPENAI_API_KEY ||
+    OPENAI_API_KEY.includes("YOUR_API_KEY_HERE") ||
+    OPENAI_API_KEY.includes("PLACEHOLDER")
+  ) {
+    console.warn("警告: API Key 尚未设置，请在 .env.local 中填写 OPENAI_API_KEY。");
   }
 
   const genderStr = input.gender === Gender.MALE ? '男 (乾造)' : '女 (坤造)';
@@ -89,14 +97,14 @@ export const generateLifeAnalysis = async (input: UserInput): Promise<LifeDestin
   `;
 
   try {
-    const response = await fetch(`${API_BASE_URL}/chat/completions`, {
+    const response = await fetch(`${OPENAI_API_BASE}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_KEY}`
+        'Authorization': `Bearer ${OPENAI_API_KEY}`
       },
       body: JSON.stringify({
-        model: "[备用渠道A] gemini-3-pro-preview", // 
+        model: MODEL_NAME,
         messages: [
           { role: "system", content: BAZI_SYSTEM_INSTRUCTION },
           { role: "user", content: userPrompt }
